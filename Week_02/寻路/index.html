@@ -1,0 +1,172 @@
+<!--<!DOCTYPE html>-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .cell {
+            display: inline-block;
+            line-height: 7px;
+            width: 6px;
+            height: 6px;
+            background-color: gray;
+            border-bottom: solid 1px #fff;
+            border-left: solid 1px #fff;
+            vertical-align: top;
+        }
+        #container {
+            width: 701px;
+        }
+    </style>
+</head>
+<body>
+<div id="container">
+
+</div>
+<input type="button" onclick="localStorage['map'] = JSON.stringify(map)" value="保存"/>
+
+</body>
+<script>
+let map = localStorage["map"] ? JSON.parse(localStorage["map"]) : Array(10000).fill(0);
+
+let container = document.getElementById("container");
+for (let y = 0; y < 100; y++) {//y表示行，x表示列
+    for (let x = 0; x < 100; x++) {
+        let cell = document.createElement("div");
+        cell.classList.add("cell");
+
+        if(map[100*y + x] == 1){
+            cell.style.backgroundColor = "black";
+        }
+
+        cell.addEventListener("mousemove", () => {
+            if(muserdown){
+                if(clear){
+                    cell.style.backgroundColor = "";
+                    map[100*y+x] = 0;
+                }else {
+                    cell.style.backgroundColor = "black";
+                    map[100*y+x] = 1;
+                }
+            }
+        });
+        container.appendChild(cell);
+    }
+}
+let muserdown = false;
+let clear = false;
+document.addEventListener("mousedown", e => {
+    muserdown = true;
+    clear = (e.which ===3);
+});
+document.addEventListener("mouseup", () => muserdown = false);
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+
+/*
+        JavaScript数组是一个天然的队列和栈
+        shift   :   删除并返回数组的第一个元素
+        unshift :   向数组的开头添加一个或更多元素，并返回新的长度。
+        push    :   向数组的末尾添加一个或更多元素，并返回新的长度。
+        pop     :   删除并返回数组的最后一个元素
+
+        push 和 shift 组合，可以实现队列  本次选择这个
+        pop 和 unshift 组合，可以实现队列
+        push 和 pop 组合，可以实现栈
+        shift 和 unshift 组合，同理可以实现栈 （一般不用这个实现栈，原因：考虑到JavaScript的数组的实现，使用这种方式实现栈，性能比较低）
+
+ */
+//bfs
+async function findPath(map, start, end){
+    // let queue = [start];//开始节点放入队列中
+    let queue = new Sorted([start],(a, b ) => distance(a) - distance(b));
+    let table = Object.create(map);
+
+    while (queue.length != 0){
+        let [x,y] = queue.take();
+        // console.log(x,y);
+        if(x == end[0] && y == end[1]){//找到结束点，结束寻找
+            let path = [];
+            container.children[100*y+x].style.backgroundColor = "red";//设置终点样式
+            while (x != start[0] || y !=start[1]){
+                [x, y] = table[100*y+x];//x,y重新赋值为前驱节点的坐标。每次x,y的值都会改变，越来越接近start
+                path.push([x, y]);
+                await sleep(1);//等待
+                container.children[100*y+x].style.backgroundColor = "purple";
+            }
+            return path.reverse();
+        }
+        await insert(x, y-1, [x, y]);//上
+        await insert(x+1, y, [x, y]);//右
+        await insert(x, y+1, [x, y]);//下
+        await insert(x-1, y, [x, y]);//左
+
+        await insert(x-1, y-1, [x, y]);//左上
+        await insert(x+1, y-1, [x, y]);//右上
+        await insert(x-1, y+1, [x, y]);//左下
+        await insert(x+1, y+1, [x, y]);//右下
+    }
+    return null;
+
+    async function insert(x, y, pre){//per为走到当前节点的前驱节点
+        if(x<0 || x>=100 || y<0 || y>=100){//判断地图边界
+            return;
+        }
+        // if(map[100*y+x] != 0 ){//判断是否为墙，或者已经走过了
+        //     return;
+        // }
+        if(table[100*y+x]){//table的取值为1，表示墙；为数组，表示已经走过了
+            return;
+        }
+
+        // await sleep(1);//等待
+        container.children[100*y+x].style.backgroundColor = "lightgreen";
+        table[100*y+x] = pre;//记录当前节点的前驱节点
+        // map[100*y+x] = 2;//状态改为2，表示已经走过了
+        queue.give([x, y]);
+    }
+
+    function distance(point){
+        return (point[0] - end[0]) ** 2 + (point[1] - end[1]) ** 2;
+    }
+}
+
+function sleep(t){
+    return new Promise(function (resolve) {
+       setTimeout(resolve, t);
+    });
+}
+
+class Sorted{
+    constructor(data, compare){
+        this.data = data.slice();//浅拷贝
+        this.compare = compare || ((a, b) => a - b);//如果没有定义compare，使用默认的方式排序
+    }
+    take(){
+        if(!this.data.length){
+            return;//不返回null，是因为，data可能为null，为了和这种情况进行区分
+        }
+        let min = this.data[0];
+        let minIndex = 0;
+
+        for (let i = 0; i < this.data.length; i++) {
+            if(this.compare(this.data[i], min) < 0){
+                min = this.data[i];
+                minIndex = i;
+            }
+        }
+
+        this.data[minIndex] = this.data[this.data.length - 1];//（由于是无序的数组，不会打乱顺序）将最后一个元素与最小的元素交换，再删除最后一个元素，这样比直接删除最小元素少了挪动数组的操作
+        this.data.pop();
+        return min;
+    }
+    give(v){
+        this.data.push(v);
+    }
+    get length() {
+        return this.data ? this.data.length : 0;
+    }
+}
+
+</script>
+</html>
