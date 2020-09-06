@@ -1,1 +1,2 @@
 学习笔记
+对es6以及之后版本的异步编程涉及的promise，generator(yield),async/await进行了学习和实践，见各目录的代码
