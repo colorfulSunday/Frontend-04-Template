@@ -1,0 +1,20 @@
+<div id="dragable" style="width: 100px;height: 100px;background-color: pink"></div>
+
+<script>
+    let dragable = document.getElementById("dragable");
+    //为什么要在mousedown里面监听mousemove和mouseup事件？因为当鼠标按下去之后监听，性能和逻辑上才正取
+    dragable.addEventListener("mousedown",function(event){
+        let up = () => {
+            document.removeEventListener("mousemove", move);
+            document.removeEventListener("mouseup", up);
+        };
+        let move = event => {
+            //todo
+        };
+
+        //为什么在document上监听，而不是直接在dragable上监听：当鼠标拖动快了移开了dragable的区域，就会“掉下来”，出现“拖断”的现象
+        //在比较新的现代浏览器里面，在document上监听会产生捕捉鼠标的效果，即使移出浏览器范围外，事件仍然是能接收到的
+        document.addEventListener("mousemove", move);
+        document.addEventListener("mouseup", up);
+    })
+</script>

@@ -1,0 +1,14 @@
+<script>
+    let obj = {
+        a : 1,
+        b : 2
+    }
+
+    let po = new Proxy(obj, {
+        set(obj, prop, val){//val为改变之后的值
+            console.log(obj, prop, val);
+        }
+    })
+
+    //Proxy本质是将传入的对象进行封装，为其提供各种hook
+</script>

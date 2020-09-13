@@ -1,0 +1,25 @@
+<div id="dragable" style="width: 100px;height: 100px;background-color: pink"></div>
+
+<script>
+    let dragable = document.getElementById("dragable");
+
+    let baseX = 0,baseY = 0;//2记录上次拖拽结束的位置，用于处理第二次拖动起始偏移。因为第二次开始拖拽瞬间 startX,startY变成了上次结束的附件的坐标（值比较大）,event.clientX - startX就在坐标原点附近
+    dragable.addEventListener("mousedown",function(event){
+        let startX = event.clientX, startY = event.clientY;//1.处理拖拽开始起始偏移
+
+        let up = event => {
+            baseX = baseX + event.clientX - startX;
+            baseY = baseY + event.clientY - startY;
+            document.removeEventListener("mousemove", move);
+            document.removeEventListener("mouseup", up);
+        };
+        let move = event => {
+            dragable.style.transform = `translate(${baseX + event.clientX - startX}px, ${baseY + event.clientY - startY}px)`;
+            console.log(event);
+        };
+
+
+        document.addEventListener("mousemove", move);
+        document.addEventListener("mouseup", up);
+    })
+</script>

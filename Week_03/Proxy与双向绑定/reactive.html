@@ -1,0 +1,92 @@
+<input id="r" type="range" min="0" max="255">
+<input id="g" type="range" min="0" max="255">
+<input id="b" type="range" min="0" max="255">
+
+<div id="color" style="width: 100px;height: 100px"></div>
+<script>
+    let reactivities = new Map();//记忆存储，保证对象的（相同）链式访问中获取的是同一个proxy对象
+    let callbacksMap = new Map();//记录对象属性和回调的对应关系。思考：为什么使用Map嵌套Map这种数据结构？ 因为每一层级对应关系是1对多，一个对象对应多个属性，一个属性对应多个回调
+    let usedReactivities = [];
+
+
+    let obj = {
+        r:1,
+        g:1,
+        b:1
+    };
+    let po = reactive(obj);
+    //数据到input （单向）绑定
+    effect(() => {
+        document.getElementById("r").value=po.r;
+    });
+    effect(() => {
+        document.getElementById("g").value=po.g;
+    });
+    effect(() => {
+        document.getElementById("b").value=po.b;
+    });
+
+    //input到数据 绑定
+    document.getElementById("r").addEventListener("input",event => po.r = event.target.value);
+    document.getElementById("g").addEventListener("input",event => po.g = event.target.value);
+    document.getElementById("b").addEventListener("input",event => po.b = event.target.value);
+
+    effect(() => {
+        document.getElementById("color").style.backgroundColor = `rgb(${po.r},${po.g},${po.b})`;
+    });
+
+    function effect(callback){
+        usedReactivities = [];//用于记录回调函数中使用了哪些proxy的属性，在触发set方法时对这些属性执行回调函数
+        callback();//执行完回调，就收集完回调中使用的proxy对象的属性（通过触发proxt的get方法来收集）
+
+        for(let reactivity of usedReactivities){
+            if(!callbacksMap.get(reactivity[0])){//判断对象是否存在,不存在则创建
+                callbacksMap.set(reactivity[0],new Map());
+            }
+            if(!callbacksMap.get(reactivity[0]).get(reactivity[1])){//判断属性是否存在,不存在则创建
+                callbacksMap.get(reactivity[0]).set(reactivity[1],[]);
+            }
+            callbacksMap.get(reactivity[0]).get(reactivity[1]).push(callback);
+        }
+    }
+
+    function reactive(obj){
+        if(reactivities.get(obj)){
+            return reactivities.get(obj);
+        }
+
+        let proxy = new Proxy(obj, {
+            set(obj, prop, val){
+                obj[prop] = val;
+                if(callbacksMap.get(obj)){
+                    let callbacks = callbacksMap.get(obj).get(prop);
+                    if(callbacks){
+                        for(let callback of callbacks){
+                            callback();
+                        }
+                    }
+                }
+                return obj[prop];
+            },
+            get(obj, prop){
+                usedReactivities.push([obj,prop]);
+                if(typeof obj[prop] === "object"){
+                    return reactive(obj[prop]);//链式调用返回的必须是proxy类型的对象，不然不会触发代理方法
+                }
+                return obj[prop];
+            }
+        });
+
+        reactivities.set(obj,proxy);
+        return proxy;
+    }
+
+    /**
+     * reactivity 响应式对象
+     * 优势分析：
+     * 执行一次赋值即可完成 初始赋值和变化时赋值
+     *
+     * 利用了赋值时肯定触发get方法的业务特点
+     */
+
+</script>

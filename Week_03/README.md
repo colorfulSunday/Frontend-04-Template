@@ -1,1 +1,4 @@
 学习笔记
+知道了处理字符串的相关算法
+Proxy的使用，以及vue的reactivity的实现和使用
+拖拽的标准实现以及range和CSSOM的基本知识
